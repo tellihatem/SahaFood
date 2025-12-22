@@ -1,0 +1,479 @@
+// Prisma Schema for Sahhafood Backend
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id             String    @id @default(cuid())
+  phone          String    @unique
+  phone_verified Boolean   @default(false)
+  password_hash  String?
+  name           String?
+  email          String?
+  gender         String?
+  birthdate      DateTime?
+  profile_image  String?
+  role           String    @default("user") // user, chef, delivery, admin
+  
+  deleted_at     DateTime?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  // Relations
+  refresh_tokens   RefreshToken[]
+  orders           Order[]          @relation("ClientOrders")
+  favorites        Favorite[]
+  addresses        Address[]
+  ratings          Rating[]
+  restaurants      Restaurant[]
+  
+  // --- IMPROVED --- Relations for Delivery Role
+  deliveries       Order[]          @relation("DeliveryAssignments")
+  delivery_profile DeliveryProfile?
+  employed_by      RestaurantDeliveryPerson[]
+
+  @@index([phone])
+  @@index([role])
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  user_id    String
+  token      String   // Hashed
+  expires_at DateTime
+  created_at DateTime @default(now())
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  @@index([user_id])
+  @@index([expires_at])
+}
+
+model Otp {
+  id         String    @id @default(cuid())
+  phone      String
+  otp_hash   String
+  expires_at DateTime
+  consumed_at DateTime?
+  attempts   Int       @default(0)
+  created_at DateTime  @default(now())
+  @@index([phone, expires_at])
+  @@index([phone, consumed_at])
+}
+
+// ============================================
+// RESTAURANTS & FOOD
+// ============================================
+
+model Restaurant {
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  description   String
+  address       String
+  latitude      Float
+  longitude     Float
+  image_url     String
+  phone         String
+  opening_hours Json      // Array of OpeningHours
+  is_active     Boolean   @default(true)
+  rating        Float     @default(0)
+  owner_id      String
+  categories    String[]  // --- ADDED --- For filtering e.g., ["pizza", "sushi"]
+  
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  
+  // Relations
+  owner          User       @relation(fields: [owner_id], references: [id])
+  foods          Food[]
+  orders         Order[]
+  ratings        Rating[]
+  delivery_staff RestaurantDeliveryPerson[] // --- ADDED ---
+
+  @@index([slug])
+  @@index([owner_id])
+  @@index([categories]) // --- ADDED ---
+  // @@fulltext([name, description])
+}
+
+model DeliveryProfile {
+  id                  String    @id @default(cuid())
+  user_id             String    @unique
+  vehicle_details     String?
+  availability_status String    @default("offline") // offline, online, on_delivery
+  current_latitude    Float?
+  current_longitude   Float?
+  
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([availability_status])
+}
+
+// --- ADDED --- Junction table for many-to-many relationship between Restaurant and Delivery User
+model RestaurantDeliveryPerson {
+  restaurant_id String
+  user_id       String // This user must have the 'delivery' role
+
+  // Relations
+  restaurant Restaurant @relation(fields: [restaurant_id], references: [id])
+  user       User       @relation(fields: [user_id], references: [id])
+
+  @@id([restaurant_id, user_id])
+}
+
+model Food {
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  price         Float
+  image_url     String
+  categories    String   // Comma-separated tags
+  is_available  Boolean  @default(true)
+  restaurant_id String
+  
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  
+  restaurant  Restaurant   @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+  cart_items  CartItem[]
+  order_items OrderItem[]
+  favorites   Favorite[]
+
+  @@index([restaurant_id])
+  // @@fulltext([name, description])
+}
+
+// ============================================
+// CART
+// ============================================
+
+model Cart {
+  id            String   @id @default(cuid())
+  user_id       String   @unique
+  restaurant_id String
+  
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  
+  items CartItem[]
+  @@index([user_id])
+}
+
+model CartItem {
+  id       String @id @default(cuid())
+  cart_id  String
+  food_id  String
+  quantity Int
+  price    Float  // Frozen price at time of adding
+  
+  cart Cart @relation(fields: [cart_id], references: [id], onDelete: Cascade)
+  food Food @relation(fields: [food_id], references: [id])
+  
+  @@unique([cart_id, food_id])
+  @@index([cart_id])
+}
+
+// ============================================
+// ORDERS
+// ============================================
+
+model Order {
+  id                  String   @id @default(cuid())
+  user_id             String
+  restaurant_id       String
+  delivery_address_id String
+  delivery_person_id  String?
+  
+  subtotal            Float
+  delivery_fee        Float
+  voucher_discount    Float    @default(0) // --- ADDED ---
+  total               Float
+  
+  status              String   @default("pending")
+  notes               String?
+  
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+  
+  user             User           @relation("ClientOrders", fields: [user_id], references: [id])
+  restaurant       Restaurant     @relation(fields: [restaurant_id], references: [id])
+  delivery_address Address        @relation(fields: [delivery_address_id], references: [id])
+  delivery_person  User?          @relation("DeliveryAssignments", fields: [delivery_person_id], references: [id])
+  items            OrderItem[]
+  rating           Rating?
+  status_logs      OrderStatusLog[]
+  applied_vouchers OrderVoucher[] // --- ADDED ---
+
+  @@index([user_id])
+  @@index([restaurant_id])
+  @@index([delivery_person_id])
+  @@index([status])
+}
+
+model OrderItem {
+  id       String @id @default(cuid())
+  order_id String
+  food_id  String
+  name     String // Frozen name
+  quantity Int
+  price    Float  // Frozen price
+  
+  order Order @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  food  Food  @relation(fields: [food_id], references: [id])
+  
+  @@index([order_id])
+}
+
+model OrderStatusLog {
+  id          String   @id @default(cuid())
+  order_id    String
+  from_status String
+  to_status   String
+  changed_by  String
+  changed_at  DateTime @default(now())
+  
+  order Order @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  
+  @@index([order_id])
+}
+
+// ============================================
+// FAVORITES
+// ============================================
+
+model Favorite {
+  id         String   @id @default(cuid())
+  user_id    String
+  food_id    String
+  created_at DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  food Food @relation(fields: [food_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, food_id])
+  @@index([user_id])
+}
+
+// ============================================
+// ADDRESSES
+// ============================================
+
+model Address {
+  id         String   @id @default(cuid())
+  user_id    String
+  label      String   // "Home", "Work", etc.
+  street     String
+  city       String
+  latitude   Float
+  longitude  Float
+  is_default Boolean  @default(false)
+  
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relations
+  user   User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@index([user_id])
+  @@index([user_id, is_default])
+}
+
+// ============================================
+// RATINGS
+// ============================================
+
+model Rating {
+  id            String   @id @default(cuid())
+  user_id       String
+  order_id      String   @unique
+  restaurant_id String
+  rating        Int      // 1-5
+  comment       String?
+  created_at    DateTime @default(now())
+
+  // Relations
+  user       User       @relation(fields: [user_id], references: [id])
+  order      Order      @relation(fields: [order_id], references: [id])
+  restaurant Restaurant @relation(fields: [restaurant_id], references: [id])
+
+  @@index([restaurant_id])
+  @@index([user_id])
+}
+
+// ============================================
+// PROMOTIONS --- ADDED ---
+// ============================================
+
+model Voucher {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  description     String
+  discount_value  Float
+  discount_type   String    // "PERCENTAGE" or "FIXED"
+  max_discount    Float?
+  min_order_value Float     @default(0)
+  is_active       Boolean   @default(true)
+  expires_at      DateTime
+  
+  created_at      DateTime  @default(now())
+  
+  order_vouchers OrderVoucher[]
+
+  @@index([code])
+  @@index([is_active, expires_at])
+}
+
+model OrderVoucher {
+  order_id   String
+  voucher_id String
+
+  order   Order   @relation(fields: [order_id], references: [id])
+  voucher Voucher @relation(fields: [voucher_id], references: [id])
+
+  @@id([order_id, voucher_id])
+}
+
+// ============================================
+// ADMIN PANEL
+// ============================================
+
+// Chef Applications
+model ChefApplication {
+  id                String    @id @default(cuid())
+  user_id           String    @unique
+  restaurant_name   String
+  restaurant_address String
+  payment_proof     String?   // Image URL
+  status            String    @default("pending") // pending, approved, rejected
+  rejection_reason  String?
+  reviewed_by       String?   // Admin user ID
+  reviewed_at       DateTime?
+  
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@index([status])
+  @@index([user_id])
+}
+
+// Restaurant Approval (for new restaurants)
+model PendingRestaurant {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  address     String
+  latitude    Float
+  longitude   Float
+  phone       String
+  image_url   String
+  images      Json     // Array of image URLs
+  owner_id    String
+  status      String   @default("pending") // pending, approved, rejected
+  rejection_reason String?
+  reviewed_by String?  // Admin user ID
+  reviewed_at DateTime?
+  
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([status])
+  @@index([owner_id])
+}
+
+// Advertisements
+model Advertisement {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  image_url   String
+  target_url  String?
+  placement   String   // home, restaurant, checkout
+  is_active   Boolean  @default(true)
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  start_date  DateTime
+  end_date    DateTime
+  
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([is_active])
+  @@index([placement])
+  @@index([start_date, end_date])
+}
+
+// Payment Verification
+model PendingPayment {
+  id              String    @id @default(cuid())
+  user_id         String
+  amount          Float
+  payment_method  String
+  transaction_id  String?
+  proof_image_url String?
+  status          String    @default("pending") // pending, verified, rejected
+  rejection_reason String?
+  verified_by     String?   // Admin user ID
+  verified_at     DateTime?
+  
+  submitted_at    DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  @@index([status])
+  @@index([user_id])
+}
+
+// User Reports
+model UserReport {
+  id                String    @id @default(cuid())
+  reporter_id       String
+  reported_user_id  String
+  reason            String
+  description       String?
+  status            String    @default("pending") // pending, resolved, dismissed
+  action_taken      String?   // warning, suspend, delete_content, dismiss
+  admin_notes       String?
+  resolved_by       String?   // Admin user ID
+  resolved_at       DateTime?
+  
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@index([status])
+  @@index([reporter_id])
+  @@index([reported_user_id])
+}
+
+// Audit Logs (for admin actions)
+model AuditLog {
+  id          String   @id @default(cuid())
+  admin_id    String
+  action      String   // approve_chef, reject_restaurant, etc.
+  entity_type String   // chef_application, restaurant, ad, etc.
+  entity_id   String
+  details     Json?    // Additional details
+  ip_address  String?
+  user_agent  String?
+  
+  created_at  DateTime @default(now())
+
+  @@index([admin_id])
+  @@index([action])
+  @@index([entity_type])
+  @@index([created_at])
+}

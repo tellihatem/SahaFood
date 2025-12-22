@@ -1,101 +1,57 @@
 ---
 trigger: always_on
 ---
+create and maintain a changelog.md of what have been done in this session, keep it short and succinct. We will use this to keep track of progress between sessions.
+use context7 mcp server for documentation of each package installation and usage.
+In every step security is a priority.
+Base the code on the best practices and security standards.
+Backend should be secure and protected.
+Application is for food delivery and ordering will be used in the future by millions of users from different countries.
+Application should be fast and responsive.
+Application should work with database server smoothly and efficiently.
+Application update screen should be smooth and responsive use riverpod.
+Application should be scalable and maintainable.
+Application should be easy to use and navigate.
+Application should be user-friendly.
+Application should use arabic language for now.
+Application should use english and french language for future.
+Application is role based.
+Application should have admin, restaurant, delivery, user roles.
+Default role is user.
+Admin can add restaurant.
+Restaurant can add food.
+Restaurant can add food categories.
+Restaurant can add food sub categories.
+Restaurant can add food images.
+Restaurant can add food prices.
+Restaurant can add food description.
+Restaurant can add food availability.
+Restaurant can add food delivery price.
+Restaurant can add Delivery person.
+Restaurant can update profile.
+Delivery person can accept order.
+Delivery person can reject order.
+Delivery person can complete order.
+Delivery person can update profile.
+User can order food.
+User can cancel order.
+User can rate order.
+User can review order.
+User can track order.
+User can search for food.
+User can search for restaurant.
+User can search for food category.
+User can search for food sub category.
+User can search for food by name.
+User can search for restaurant by name.
+User can search for restaurant by location.
+User can search for restaurant by price range.
+User can search for restaurant by rating.
+User can search for restaurant by availability.
+User can search for restaurant by delivery time.
+User can customize order and add notes.
+User can update profile.
+User can pay cash on delivery.
+User earn points for every order.
+User can redeem points for food.
 
-🧠 Core Rules
-
-Focus entirely on UI, UX, and state handling.
-
-Do not write, simulate, or import any API, backend, or HTTP logic.
-
-Assume data is provided locally (mock lists, local models, state variables).
-
-Prioritize simplicity, readability, and reusability of code.
-
-Every screen must be functional and navigable, even if the data is dummy.
-
-📁 Project Structure
-lib/
-  core/
-    constants/     → colors, text styles, dimensions
-    theme/         → light/dark themes
-    utils/         → helpers (formatters, validators)
-  features/
-    fridge/
-      models/      → simple local models only (no serialization)
-      providers/   → state management (Riverpod / ChangeNotifier)
-      ui/          → screens, widgets
-  shared/
-    widgets/       → reusable UI components (buttons, cards, inputs)
-    layout/        → app shell, nav bar, etc.
-
-🎨 UI Design Rules
-
-Follow Material 3 design system.
-
-Layouts must be:
-
-Responsive (mobile + tablet)
-
-Minimal and modern (white, light blue, green tones)
-
-Use consistent spacing, typography, and iconography.
-
-Each screen should look complete even with static placeholder data.
-
-Avoid clutter — every visual element must have a clear purpose.
-
-⚙️ State Management
-
-Use Riverpod (recommended) or ChangeNotifier — pick one and stay consistent.
-
-State is local-only (in-memory).
-
-Keep logic minimal — e.g., adding/removing items, marking expired food, etc.
-
-No asynchronous or network operations.
-
-📐 Architecture Discipline
-
-Follow feature-based structure — one folder per feature.
-
-Separate UI and state clearly:
-
-ui/ handles widgets/screens.
-
-providers/ or state/ handles logic.
-
-Keep widgets small, pure, and reusable.
-
-No backend placeholders, no repository or API classes at all.
-
-💡 Coding Standards
-
-Every file and class must be self-explanatory — readable by a junior dev.
-
-No commented-out or dead code.
-
-Document each widget, provider, and helper briefly.
-
-Consistent naming: FoodItemCard, not Card1.
-
-No magic values — use constants.
-
-Composition over inheritance.
-
-🚧 Workflow Rules
-
-Explain feature goals before implementation.
-
-Maintain architectural consistency — one pattern, no mixing styles.
-
-Avoid adding dependencies unless necessary for Flutter UI or state management.
-
-Keep everything ready to connect to a backend later, but don’t build that connection now.
-
-Every generated code step should be understandable and editable by a human.
-
-🧩 Philosophy
-
-You are building the visual and interactive layer of a food delivery app.
-It should be modular, maintainable, and easy to plug into a backend later — but for now, it must stand alone.
