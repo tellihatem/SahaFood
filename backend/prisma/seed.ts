@@ -210,7 +210,7 @@ async function main() {
   const ad = await prisma.advertisement.create({
     data: {
       title: 'عروض نهاية الأسبوع',
-      description: 'احصل على خصم 30% على جميع الطلبات',
+      description: 'احصل على خصم 20% على جميع الطلبات',
       image_url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836',
       target_url: '/promotions/weekend',
       placement: 'home',
@@ -224,7 +224,7 @@ async function main() {
       where: { title: 'عروض نهاية الأسبوع' }
     });
   });
-  console.log('✅ Advertisement created:', ad.id);
+  console.log('✅ Advertisement created:', ad);
 
   console.log('🎉 Database seed completed successfully!');
 }

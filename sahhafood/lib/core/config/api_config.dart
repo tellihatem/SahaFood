@@ -4,7 +4,8 @@ class ApiConfig {
   ApiConfig._();
 
   /// Base URL for the API - change this for different environments
-  static const String baseUrl = 'http://10.0.2.2:3000'; // Android emulator localhost
+  static const String baseUrl = 'http://172.17.32.1:3000'; // Computer IP for Android emulator
+  // static const String baseUrl = 'http://10.0.2.2:3000'; // Android emulator localhost (alternative)
   // static const String baseUrl = 'http://localhost:3000'; // iOS simulator / Web
   // static const String baseUrl = 'https://api.sahhafood.com'; // Production
 

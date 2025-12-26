@@ -14,8 +14,10 @@ async function bootstrap() {
 
   // CORS
   const allowedOrigins = configService.get<string>('ALLOWED_ORIGINS')?.split(',') || [];
+  const isDevelopment = configService.get<string>('NODE_ENV') === 'development';
+  
   app.enableCors({
-    origin: allowedOrigins,
+    origin: isDevelopment ? true : allowedOrigins, // Allow all origins in development
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept-Language'],

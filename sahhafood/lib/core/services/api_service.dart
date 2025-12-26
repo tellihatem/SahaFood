@@ -11,7 +11,7 @@ class ApiService {
   ApiService._() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: ApiConfig.baseUrl,
+        baseUrl: ApiConfig.apiBaseUrl,
         connectTimeout: ApiConfig.connectTimeout,
         receiveTimeout: ApiConfig.receiveTimeout,
         sendTimeout: ApiConfig.sendTimeout,
@@ -90,7 +90,7 @@ class ApiService {
       if (refreshToken == null) return false;
 
       final response = await Dio().post(
-        '${ApiConfig.baseUrl}${ApiConfig.authRefresh}',
+        '${ApiConfig.apiBaseUrl}${ApiConfig.authRefresh}',
         data: {'refreshToken': refreshToken},
       );
 
