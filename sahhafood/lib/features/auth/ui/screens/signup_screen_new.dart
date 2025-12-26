@@ -1,26 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../../core/constants/constants.dart';
+import '../../providers/auth_provider.dart';
 import '../widgets/phone_input_field.dart';
+import 'otp_verification_screen.dart';
 
 /// Signup screen for new user registration
-/// Follows architecture rules: local state only, uses constants, clean UI
-class SignupScreen extends StatefulWidget {
+/// Follows architecture rules: uses Riverpod for state, uses constants, clean UI
+class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
 
   @override
-  State<SignupScreen> createState() => _SignupScreenState();
+  ConsumerState<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -60,8 +62,8 @@ class _SignupScreenState extends State<SignupScreen> {
     if (value == null || value.isEmpty) {
       return 'يرجى إدخال كلمة المرور';
     }
-    if (value.length < 6) {
-      return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+    if (value.length < 8) {
+      return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
     }
     return null;
   }
@@ -78,27 +80,37 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _handleSignup() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      // Format phone number with country code
+      final phone = '+213${_phoneController.text}';
+      final name = _nameController.text;
+      final password = _passwordController.text;
 
-      // Simulate local validation delay
-      await Future.delayed(const Duration(seconds: 2));
+      final success = await ref.read(authProvider.notifier).register(
+        phone: phone,
+        name: name,
+        password: password,
+      );
 
-      setState(() {
-        _isLoading = false;
-      });
+      if (!mounted) return;
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('تم إنشاء الحساب بنجاح'),
-            backgroundColor: AppColors.primary,
+      final authState = ref.read(authProvider);
+
+      if (success && authState.requiresOtpVerification) {
+        // Navigate to OTP verification
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OtpVerificationScreen(phoneNumber: phone),
           ),
         );
-
-        // Navigate to home screen after successful signup
-        Navigator.of(context).pushNamed('/home');
+      } else if (authState.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authState.error!),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        ref.read(authProvider.notifier).clearError();
       }
     }
   }
@@ -304,12 +316,17 @@ class _SignupScreenState extends State<SignupScreen> {
                           SizedBox(height: AppDimensions.spacing32),
                           
                           // Signup button
-                          CustomButton(
-                            text: 'إنشاء حساب',
-                            onPressed: _handleSignup,
-                            width: double.infinity,
-                            height: AppDimensions.buttonHeight,
-                            isLoading: _isLoading,
+                          Consumer(
+                            builder: (context, ref, child) {
+                              final isLoading = ref.watch(authLoadingProvider);
+                              return CustomButton(
+                                text: 'إنشاء حساب',
+                                onPressed: _handleSignup,
+                                width: double.infinity,
+                                height: AppDimensions.buttonHeight,
+                                isLoading: isLoading,
+                              );
+                            },
                           ),
                           
                           SizedBox(height: AppDimensions.spacing40),

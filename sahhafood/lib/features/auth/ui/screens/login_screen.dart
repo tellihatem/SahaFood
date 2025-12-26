@@ -1,26 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../../core/constants/constants.dart';
+import '../../providers/auth_provider.dart';
+import '../../models/user_model.dart';
 import '../widgets/phone_input_field.dart';
 import 'signup_screen_new.dart';
 import 'forgot_password_screen.dart';
+import 'otp_verification_screen.dart';
 
 /// Login screen for user authentication
 /// Supports phone number and password login with RTL Arabic layout
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
   bool _rememberMe = false;
   bool _obscurePassword = true;
 
@@ -48,35 +51,62 @@ class _LoginScreenState extends State<LoginScreen> {
     if (value == null || value.isEmpty) {
       return 'يرجى إدخال كلمة المرور';
     }
-    if (value.length < 6) {
-      return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+    if (value.length < 8) {
+      return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
     }
     return null;
   }
 
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      // Format phone number with country code
+      final phone = '+213${_phoneController.text}';
+      final password = _passwordController.text;
 
-      // Simulate local validation delay
-      await Future.delayed(const Duration(seconds: 2));
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      // TODO: Implement local state management for login
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('تم تسجيل الدخول بنجاح'),
-          backgroundColor: AppColors.primary,
-        ),
+      final success = await ref.read(authProvider.notifier).login(
+        phone: phone,
+        password: password,
       );
 
-      // Navigate to role selection screen
-      Navigator.of(context).pushNamed('/role-selection');
+      if (!mounted) return;
+
+      final authState = ref.read(authProvider);
+
+      if (authState.requiresOtpVerification) {
+        // Navigate to OTP verification
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OtpVerificationScreen(phoneNumber: phone),
+          ),
+        );
+        return;
+      }
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('تم تسجيل الدخول بنجاح'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+
+        // Navigate based on user role
+        final userRole = authState.user.role;
+        if (userRole.requiresRoleSelection) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/role-selection', (route) => false);
+        } else {
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        }
+      } else if (authState.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authState.error!),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        ref.read(authProvider.notifier).clearError();
+      }
     }
   }
 
@@ -387,12 +417,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           SizedBox(height: AppDimensions.spacing32),
                           
                           // Login Button
-                          CustomButton(
-                            text: 'تسجيل الدخول',
-                            onPressed: _handleLogin,
-                            width: double.infinity,
-                            height: AppDimensions.buttonHeight,
-                            isLoading: _isLoading,
+                          Consumer(
+                            builder: (context, ref, child) {
+                              final isLoading = ref.watch(authLoadingProvider);
+                              return CustomButton(
+                                text: 'تسجيل الدخول',
+                                onPressed: _handleLogin,
+                                width: double.infinity,
+                                height: AppDimensions.buttonHeight,
+                                isLoading: isLoading,
+                              );
+                            },
                           ),
                           
                           SizedBox(height: AppDimensions.spacing24),

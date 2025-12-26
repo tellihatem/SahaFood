@@ -1,5 +1,47 @@
 # Changelog
 
+## [2024-12-25] - Frontend Authentication Integration
+
+### Added
+- **API Service Layer** (`lib/core/services/`)
+  - `api_config.dart` - Base URLs and API endpoints configuration
+  - `secure_storage_service.dart` - Secure token storage using flutter_secure_storage
+  - `api_service.dart` - Dio HTTP client with token refresh interceptor
+  - `auth_service.dart` - Authentication API calls (register, login, OTP, logout)
+
+- **Updated User Model** (`lib/features/auth/models/user_model.dart`)
+  - JSON serialization for API responses
+  - Backend role mapping (user, restaurant, delivery, admin)
+  - `requiresRoleSelection` helper for role-based navigation
+
+- **Updated Auth Provider** (`lib/features/auth/providers/auth_provider.dart`)
+  - Real API integration with AuthService
+  - Loading, error, and OTP verification state management
+  - Token persistence and auto-login on app start
+  - Role-based navigation logic
+
+- **Updated Auth Screens**
+  - `login_screen.dart` - API login with OTP/role-based navigation
+  - `signup_screen_new.dart` - API registration with OTP flow
+  - `otp_verification_screen.dart` - New 6-digit OTP verification screen
+  - `role_selection_screen.dart` - Role selection for restaurant/delivery users
+
+- **Updated Main App** (`lib/main.dart`)
+  - Auth state initialization on splash screen
+  - Auto-login and role-based navigation
+
+- **Dependencies Added**
+  - `dio: ^5.4.0` - HTTP client
+  - `flutter_secure_storage: ^9.0.0` - Secure token storage
+  - `json_annotation: ^4.8.1` - JSON serialization
+
+### Security
+- Tokens stored in secure storage (not SharedPreferences)
+- Automatic token refresh on 401 responses
+- OTP verification required for new registrations
+
+---
+
 ## [2024-12-22] - API Endpoints Implementation
 
 ### Added - Step 1: Authentication Flow

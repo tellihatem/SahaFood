@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../core/services/user_role_service.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../core/constants/constants.dart';
+import '../../providers/auth_provider.dart';
+import '../../models/user_model.dart';
 import '../../../navigation/screens/main_navigation_screen.dart';
 import '../../../chef/navigation/chef_navigation_screen.dart';
 import '../../../delivery/navigation/delivery_navigation.dart';
 
-/// Role selection screen for testing purposes
-/// Allows switching between client, chef, and delivery interfaces
-class RoleSelectionScreen extends StatelessWidget {
+/// Role selection screen for restaurant and delivery users
+/// Allows switching between client and their professional interface
+class RoleSelectionScreen extends ConsumerWidget {
   const RoleSelectionScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final userRole = authState.user.role;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -38,7 +43,7 @@ class RoleSelectionScreen extends StatelessWidget {
                 ),
                 SizedBox(height: AppDimensions.spacing12),
                 Text(
-                  'للاختبار فقط - اختر الواجهة التي تريد استخدامها',
+                  'مرحباً ${authState.user.fullName ?? ""}',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.textSecondary,
@@ -46,14 +51,14 @@ class RoleSelectionScreen extends StatelessWidget {
                 ),
                 SizedBox(height: AppDimensions.spacing48),
                 
-                // Client role button
+                // Client role button - always available
                 _RoleCard(
                   icon: Icons.shopping_bag_outlined,
                   title: 'عميل',
                   description: 'تصفح المطاعم واطلب الطعام',
                   color: AppColors.success,
                   onTap: () {
-                    UserRoleService().switchRole(UserRole.client);
+                    ref.read(authProvider.notifier).setUserRole(UserRole.user);
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (context) => const MainNavigationScreen(),
@@ -64,39 +69,42 @@ class RoleSelectionScreen extends StatelessWidget {
                 
                 SizedBox(height: AppDimensions.spacing16),
                 
-                // Chef role button
-                _RoleCard(
-                  icon: Icons.restaurant,
-                  title: 'طاهي / بائع',
-                  description: 'إدارة المطعم والطلبات والقائمة',
-                  color: AppColors.primary,
-                  onTap: () {
-                    UserRoleService().switchRole(UserRole.chef);
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => const ChefNavigationScreen(),
-                      ),
-                    );
-                  },
-                ),
+                // Restaurant role button - only for restaurant users
+                if (userRole == UserRole.restaurant)
+                  _RoleCard(
+                    icon: Icons.restaurant,
+                    title: 'طاهي / بائع',
+                    description: 'إدارة المطعم والطلبات والقائمة',
+                    color: AppColors.primary,
+                    onTap: () {
+                      ref.read(authProvider.notifier).setUserRole(UserRole.restaurant);
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const ChefNavigationScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 
-                SizedBox(height: AppDimensions.spacing16),
+                if (userRole == UserRole.restaurant)
+                  SizedBox(height: AppDimensions.spacing16),
                 
-                // Delivery role button
-                _RoleCard(
-                  icon: Icons.delivery_dining,
-                  title: 'موظف توصيل',
-                  description: 'توصيل الطلبات للعملاء',
-                  color: AppColors.info,
-                  onTap: () {
-                    UserRoleService().switchRole(UserRole.delivery);
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => const DeliveryNavigation(),
-                      ),
-                    );
-                  },
-                ),
+                // Delivery role button - only for delivery users
+                if (userRole == UserRole.delivery)
+                  _RoleCard(
+                    icon: Icons.delivery_dining,
+                    title: 'موظف توصيل',
+                    description: 'توصيل الطلبات للعملاء',
+                    color: AppColors.info,
+                    onTap: () {
+                      ref.read(authProvider.notifier).setUserRole(UserRole.delivery);
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const DeliveryNavigation(),
+                        ),
+                      );
+                    },
+                  ),
               ],
             ),
           ),

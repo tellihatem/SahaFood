@@ -8,8 +8,8 @@ class CustomButton extends StatelessWidget {
   /// Button text label
   final String text;
   
-  /// Callback when button is pressed
-  final VoidCallback onPressed;
+  /// Callback when button is pressed (null disables the button)
+  final VoidCallback? onPressed;
   
   /// Background color, defaults to primary brand color
   final Color? backgroundColor;
@@ -41,7 +41,7 @@ class CustomButton extends StatelessWidget {
   const CustomButton({
     Key? key,
     required this.text,
-    required this.onPressed,
+    this.onPressed,
     this.backgroundColor,
     this.textColor,
     this.width,
@@ -64,7 +64,7 @@ class CustomButton extends StatelessWidget {
         width: width ?? double.infinity,
         height: height ?? AppDimensions.buttonHeight,
         child: ElevatedButton(
-          onPressed: isLoading ? null : onPressed,
+          onPressed: isLoading || onPressed == null ? null : onPressed,
           style: ElevatedButton.styleFrom(
             backgroundColor: backgroundColor ?? AppColors.primary,
             disabledBackgroundColor: (backgroundColor ?? AppColors.primary).withOpacity(0.6),

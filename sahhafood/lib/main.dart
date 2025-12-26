@@ -6,6 +6,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sahhafood/features/onboarding/screens/onboarding_screen.dart';
 import 'package:sahhafood/features/auth/ui/screens/location_access_screen.dart';
 import 'package:sahhafood/features/auth/ui/screens/role_selection_screen.dart';
+import 'package:sahhafood/features/auth/ui/screens/login_screen.dart';
+import 'package:sahhafood/features/auth/providers/auth_provider.dart';
 import 'package:sahhafood/features/navigation/screens/main_navigation_screen.dart';
 import 'package:sahhafood/features/chef/navigation/chef_navigation_screen.dart';
 import 'package:sahhafood/features/chef/ui/screens/chef_add_item_screen.dart';
@@ -75,6 +77,7 @@ class MyApp extends StatelessWidget {
             Locale('ar', 'SA'),
           ],
           routes: {
+            '/login': (context) => const LoginScreen(),
             '/location': (context) => const LocationAccessScreen(),
             '/home': (context) => const MainNavigationScreen(),
             '/role-selection': (context) => const RoleSelectionScreen(),
@@ -97,18 +100,18 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Ensure fonts are loaded before showing the onboarding screen
+    // Ensure fonts are loaded before checking auth and navigating
     _loadFontsAndNavigate();
   }
 
@@ -127,10 +130,33 @@ class _SplashScreenState extends State<SplashScreen> {
       GoogleFonts.sen(fontWeight: FontWeight.w700).fontFamily,
     ].map((e) => Future.value(e)));
 
+    // Initialize auth state - check for existing tokens
+    await ref.read(authProvider.notifier).initialize();
+
     // Add minimum splash time
     await Future.delayed(const Duration(seconds: 2));
 
-    if (mounted) {
+    if (!mounted) return;
+
+    final authState = ref.read(authProvider);
+
+    if (authState.user.isLoggedIn) {
+      // User is logged in - navigate based on role
+      if (authState.user.role.requiresRoleSelection) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const RoleSelectionScreen(),
+          ),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const MainNavigationScreen(),
+          ),
+        );
+      }
+    } else {
+      // User is not logged in - show onboarding
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => const OnboardingScreen(),

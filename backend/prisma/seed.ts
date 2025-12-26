@@ -190,8 +190,10 @@ async function main() {
   console.log('✅ Foods created:', foods.length);
 
   // Create sample voucher
-  const voucher = await prisma.voucher.create({
-    data: {
+  const voucher = await prisma.voucher.upsert({
+    where: { code: 'WELCOME20' },
+    update: {},
+    create: {
       code: 'WELCOME20',
       description: 'خصم 20% للمستخدمين الجدد',
       discount_value: 20,
@@ -216,6 +218,11 @@ async function main() {
       start_date: new Date(),
       end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     },
+  }).catch(() => {
+    // If advertisement already exists, find existing one
+    return prisma.advertisement.findFirst({
+      where: { title: 'عروض نهاية الأسبوع' }
+    });
   });
   console.log('✅ Advertisement created:', ad.id);
 

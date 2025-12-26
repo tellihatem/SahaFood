@@ -18,6 +18,13 @@ Application should use english and french language for future.
 Application is role based.
 Application should have admin, restaurant, delivery, user roles.
 Default role is user.
+User can't see the role selection page because he have default role.
+Delivery can see the role selection page because he have delivery role so he can chose client role.
+Restaurant can see the role selection page because he have restaurant role so he can chose client role.
+When user login he will be redirected to home page directly without role selection page.
+When resturant and delivery login he will be redirected to role selection page and then to home page for that role.
+In home page we should get his location from device and show him the nearest restaurant.
+If the location for example willaya doesn't have any restaurant we should let him know that there is no restaurant in this location and not show him any restaurant instead show him message that we don't have any restaurant in this location in the future we will add it and sorry for the inconvenience.
 Admin can add restaurant.
 Restaurant can add food.
 Restaurant can add food categories.
