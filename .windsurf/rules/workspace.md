@@ -1,6 +1,7 @@
 ---
 trigger: always_on
 ---
+Security is number one matter.
 create and maintain a changelog.md of what have been done in this session, keep it short and succinct. We will use this to keep track of progress between sessions.
 use context7 mcp server for documentation of each package installation and usage.
 In every step security is a priority.

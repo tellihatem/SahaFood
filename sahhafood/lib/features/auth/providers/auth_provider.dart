@@ -10,6 +10,7 @@ class AuthState {
   final String? error;
   final bool requiresOtpVerification;
   final String? pendingPhone;
+  final bool isAuthenticated;
 
   const AuthState({
     required this.user,
@@ -17,6 +18,7 @@ class AuthState {
     this.error,
     this.requiresOtpVerification = false,
     this.pendingPhone,
+    this.isAuthenticated = false,
   });
 
   AuthState copyWith({
@@ -25,6 +27,7 @@ class AuthState {
     String? error,
     bool? requiresOtpVerification,
     String? pendingPhone,
+    bool? isAuthenticated,
   }) {
     return AuthState(
       user: user ?? this.user,
@@ -32,6 +35,7 @@ class AuthState {
       error: error,
       requiresOtpVerification: requiresOtpVerification ?? this.requiresOtpVerification,
       pendingPhone: pendingPhone ?? this.pendingPhone,
+      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
     );
   }
 
@@ -96,6 +100,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           user: UserModel.fromUserResponse(response.user!),
           isLoading: false,
           requiresOtpVerification: false,
+          isAuthenticated: true,
         );
         return true;
       }
@@ -178,12 +183,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
         otp: otp,
       );
 
+      // Save tokens if verification successful
+      if (response.accessToken != null) {
+        await SecureStorageService.saveAuthTokens(
+          accessToken: response.accessToken!,
+          refreshToken: response.refreshToken!,
+          userId: response.user?.id,
+          role: response.user?.role,
+        );
+      }
+
       if (response.user != null) {
         state = state.copyWith(
           user: UserModel.fromUserResponse(response.user!),
           isLoading: false,
           requiresOtpVerification: false,
           pendingPhone: null,
+          isAuthenticated: true,
         );
         return true;
       }
